@@ -1,0 +1,125 @@
+<configuration>
+
+	<datasources>
+
+                <datasource id="pagos">
+                        <driver>oracle.jdbc.OracleDriver</driver>
+                        <url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+                        <user>hub_trx_pf</user>
+                        <password>hubtrxpf.2017</password>
+                </datasource>
+
+                <datasource id="convenios">
+                        <driver>oracle.jdbc.OracleDriver</driver>
+                        <url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+                        <user>bd_convenios_pf</user>
+                        <password>bdconveniospf.2017</password>
+                </datasource>
+
+                <datasource id="gestion">
+                        <driver>oracle.jdbc.OracleDriver</driver>
+                        <url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+                        <user>gestion_pf</user>
+                        <password>gestionpf.2017</password>
+                </datasource>
+
+	</datasources>
+		
+	<base datasource="convenios">		 
+			SELECT * FROM (select convenios.cod_cnv as id_convenio, 
+												t1.admiteComisionLinea as admite_comision, 
+												nvl(t2.tipoComisionLinea, 'fija') as tipo_comision, 
+												nvl(t3.comisionLineaFija, 0)  as comision_fija, 
+												nvl(t4.comisionLineaPorcentaje , 0) as comision_porcentaje,
+												nvl(t5.impuesto,'0') as impuesto_porcentaje 
+											from convenios
+								   left outer join (
+									select convenios.cod_cnv as convenio,
+										   valores.dsc_val as admiteComisionLinea
+											from convenios
+											left outer join valores on
+											   valores.id_cnv = convenios.id_cnv
+											join valor_atributo on
+											   valor_atributo.id_val_atr = valores.id_val_atr
+											join atributos on
+											   atributos.id_atr = valor_atributo.id_atr
+											where atributos.cod_atr = 'admiteComisionLinea'
+									) t1 on t1.convenio = convenios.cod_cnv
+								  left outer join (
+								   select convenios.cod_cnv as convenio,
+											valor_atributo.cod_val_atr as tipoComisionLinea
+											from convenios
+											left outer join valores on
+											   valores.id_cnv = convenios.id_cnv
+											join valor_atributo on
+											   valor_atributo.id_val_atr = valores.id_val_atr
+											join atributos on
+											   atributos.id_atr = valor_atributo.id_atr
+											where atributos.cod_atr = 'tipoComisionLinea'
+								  ) t2 on t2.convenio = convenios.cod_cnv
+								   left outer join (
+								   select convenios.cod_cnv as convenio,
+										   valores.dsc_val as comisionLineaFija
+											from convenios
+											left outer join valores on
+											   valores.id_cnv = convenios.id_cnv
+											join valor_atributo on
+											   valor_atributo.id_val_atr = valores.id_val_atr
+											join atributos on
+											   atributos.id_atr = valor_atributo.id_atr
+											where atributos.cod_atr = 'comisionLineaFija'
+								  ) t3 on t3.convenio = convenios.cod_cnv
+								  
+									 left outer join (
+								   select convenios.cod_cnv as convenio,
+										   valores.dsc_val as comisionLineaPorcentaje
+											from convenios
+											left outer join valores on
+											   valores.id_cnv = convenios.id_cnv
+											join valor_atributo on
+											   valor_atributo.id_val_atr = valores.id_val_atr
+											join atributos on
+											   atributos.id_atr = valor_atributo.id_atr
+											where atributos.cod_atr = 'comisionLineaPorcentaje'
+								  ) t4 on t4.convenio = convenios.cod_cnv
+									   left outer join (
+								   select convenios.cod_cnv as convenio,
+										   valores.dsc_val as impuesto
+											from convenios
+											left outer join valores on
+											   valores.id_cnv = convenios.id_cnv
+											join valor_atributo on
+											   valor_atributo.id_val_atr = valores.id_val_atr
+											join atributos on
+											   atributos.id_atr = valor_atributo.id_atr
+											where atributos.cod_atr = 'impuesto'
+								  ) t5 on t5.convenio = convenios.cod_cnv ) C WHERE C.id_convenio='${console.num_convenio}'
+	</base>
+
+
+	<process>
+		
+		<query datasource="pagos">
+			UPDATE PAGO_CONCILIACION SET 
+			COMISION_LINEA = GET_COMISION(MONTO_PAGO, '${db.TIPO_COMISION}', ${db.COMISION_FIJA},  ${db.COMISION_PORCENTAJE}, ${db.IMPUESTO_PORCENTAJE}, ${console.decimales}),
+			IMPUESTO = GET_IMPUESTO(
+							GET_COMISION(MONTO_PAGO, '${db.TIPO_COMISION}', ${db.COMISION_FIJA},  ${db.COMISION_PORCENTAJE}, ${db.IMPUESTO_PORCENTAJE}, ${console.decimales}), 
+							${db.IMPUESTO_PORCENTAJE}
+							), 
+			MONTO_NETO = GET_NETO(
+							MONTO_PAGO, 
+							GET_COMISION(MONTO_PAGO, '${db.TIPO_COMISION}', ${db.COMISION_FIJA},  ${db.COMISION_PORCENTAJE}, ${db.IMPUESTO_PORCENTAJE}, ${console.decimales}),
+							GET_IMPUESTO(
+								GET_COMISION(MONTO_PAGO, '${db.TIPO_COMISION}', ${db.COMISION_FIJA},  ${db.COMISION_PORCENTAJE}, ${db.IMPUESTO_PORCENTAJE}, ${console.decimales}), 
+								${db.IMPUESTO_PORCENTAJE}
+							),
+							${console.decimales} 
+						) 
+			WHERE MONTO_NETO IS NULL 
+			AND NUM_CONVENIO='${console.num_convenio}'
+		</query>
+		
+	</process>
+
+
+</configuration>

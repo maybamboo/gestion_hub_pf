@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<conf xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" lineIdSize="0" xsi:noNamespaceSchemaLocation='template.xsd' resultEncoding="UTF-8" ignoreLineType="yes" lineSeparator="|"> 
+	<filename>
+		<field length="6" name="PREFIX" type="CONSTANT" validation="GPREY_" />
+		<field length="8" name="FECHA" type="TEXT" TRUNCATE="RIGHT"/>    
+		<field length="1" name="DOT" type="CONSTANT" validation="." />
+		<field length="3" name="EXT" type="CONSTANT" validation="txt" />
+	</filename>
+	<line role="header">
+		<field length="1" name="TIPO_REGISTRO" type="CONSTANT" validation="1" />
+		<field display="ID_RECAUDADOR" format="NORMAL" length="32" name="ID_RECAUDADOR" type="TEXT" />
+	</line>
+	
+	<line role="default">
+		<!-- <field length="1" name="TIPO_REGISTRO" type="CONSTANT" validation="2" /> -->
+                <field display="NUMERO_CUENTA" format="NORMAL" name="NUMERO_CUENTA" type="TEXT" length="32" />
+		<field display="NOMBRE" format="NORMAL" name="NOMBRE" type="TEXT" length="100" />
+		<field display="RECAUDADOR_ID" format="NORMAL" name="RECAUDADOR_ID" type="TEXT" length="32" />
+		<field display="MONTO_PAGO" format="NORMAL" name="MONTO_PAGO" type="TEXT" length="32" />
+		<field display="MEDIO_PAGO" format="NORMAL" name="MEDIO_PAGO" type="TEXT" length="32" />
+		<!-- <field display="FECHA_CONTABLE" format="NORMAL" name="FECHA_CONTABLE" type="TEXT" length="32" /> -->
+		<field name="NOMBRE_SUCURSAL" display="NOMBRE_SUCURSAL" type="CONSTANT" validation="SUCURSAL" length="8"/>
+		<field display="FECHA_TRX" format="NORMAL" name="FECHA_TRX" type="TEXT" length="32"/>
+		<field display="ID_TRX_REC" format="NORMAL" name="ID_TRX_REC" type="TEXT" length="32" />
+	</line>
+	<line role="footer">
+		<field length="1" name="TIPO_REGISTRO" type="CONSTANT" validation="3" />
+		<field display="CANTIDAD_REG"  length="9" name="CANTIDAD_REG" type="INTEGER" format="NORMAL" />
+		<field display="SUMA_RECAUDACION"  length="32" name="SUMA_RECAUDACION" type="DECIMAL" format="NORMAL" />
+	</line>
+	
+</conf>

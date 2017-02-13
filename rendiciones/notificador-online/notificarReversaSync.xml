@@ -1,0 +1,66 @@
+<configuration>
+
+        <datasources>
+
+                <datasource id="pagos">
+                        <driver>oracle.jdbc.OracleDriver</driver>
+                        <url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+                        <user>hub_trx_pf</user>
+                        <password>hubtrxpf.2017</password>
+                </datasource>
+
+                <datasource id="convenios">
+                        <driver>oracle.jdbc.OracleDriver</driver>
+                        <url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+                        <user>bd_convenios_pf</user>
+                        <password>bdconveniospf.2017</password>
+                </datasource>
+
+                <datasource id="gestion">
+                        <driver>oracle.jdbc.OracleDriver</driver>
+                        <url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+                        <user>gestion_pf</user>
+                        <password>gestionpf.2017</password>
+                </datasource>
+
+        </datasources>
+
+
+        <base datasource="pagos">
+                select PAG_ID,
+                              	COD_EMPRESA_HOLDING,
+                                monto_pago/POWER(10,NUMERO_DECIMALES) as monto_pago,
+                                nvl(monto_neto/POWER(10,NUMERO_DECIMALES),0) as monto_neto ,
+                                pag_id,
+                                id_servicio,
+                                recaudador_id,
+                                num_convenio,
+				estado_conciliacion,
+                                nvl(id_trx_eft,-1) as ID_TRX_EFT,
+				nvl(id_trx_eps, -1) as ID_TRX_EPS,
+                                nvl(comision_linea,
+                0) as COMISION_LINEA,
+                nvl(impuesto,0) as IMPUESTO
+                from pago
+                where  estado_notificacion=0
+		        and ESTADO_NOTIFICACION_REVERSA=0
+                        and estado_conciliacion=5
+                        and num_convenio in ('${console.num_convenio}')
+			and TRUNC(fecha_trx) = to_date('${console.fecha_trx}' ,'DD/MM/YY')
+        </base>
+
+        <process>
+               <query  datasource="gestion">
+                     update pago set  id_trx_eps=${db.ID_TRX_EPS}, ESTADO_NOTIFICACION_REVERSA = 0
+	                    where pag_id = ${db.PAG_ID}
+               </query>
+
+               <query  datasource="gestion">
+                     update PAGO_CONCILIACION_HISTORICO set id_trx_eps=${db.ID_TRX_EPS}, ESTADO_NOTIFICACION_REVERSA = 0
+                           where pag_id = ${db.PAG_ID}
+               </query>
+
+        </process>
+
+</configuration>
+

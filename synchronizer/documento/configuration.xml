@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- las key en el archivo de comparar con el de control deben tener la misma 
+	longitud y deben ser iguales en numero -->
+<configuration>
+
+	<extractor column-separator="" driver="oracle.jdbc.driver.OracleDriver"
+		url="jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM" user="gestion_pf"
+		password="gestionpf.2017">
+
+		<sql>			
+		select 
+			lpad(to_char(DOC_ID), 15, ' ')||
+			rpad(nvl(ID_TRX_REC,' '),50, ' ')||
+			rpad(nvl(ID_TRX_EFT,' '),50, ' ')||
+			rpad(nvl(ID_TRX_EPS,' '),50, ' ')||
+			rpad(to_char(FECHA_TRX,'yyyymmdd hh24:mi:ss'),14,' ')||
+			rpad(to_char(FECHA_SISTEMA,'yyyymmdd hh24:mi:ss'),14,' ')||
+			rpad(to_char(FECHA_VCTO,'yyyymmdd hh24:mi:ss'),14,' ')||
+			rpad(nvl(RECAUDADOR_ID,' '),30, ' ')||
+			rpad(nvl(EMPRESA_ID,' '),30, ' ')||
+			rpad(nvl(CANAL,' '),20, ' ')||
+			rpad(nvl(CONVENIO,' '),20, ' ')||
+			rpad(nvl(ID_SERVICIO,' '),25, ' ')||
+			rpad(nvl(ID_CLIENTE,' '),20, ' ')||
+			rpad(nvl(FOLIO,' '),60, ' ')||
+			rpad(nvl(TIPO_DOCUMENTO,' '),50, ' ')||
+			rpad(nvl(PRODUCTO,' '),60, ' ')||
+			rpad(nvl(NOMBRE_SERVICIO,' '),60, ' ')||
+			lpad(nvl(to_char(CUOTA), ' '), 3, ' ')||
+			lpad(nvl(to_char(TOTAL_CUOTA), ' '), 10, ' ')||
+			rpad(nvl(MONEDA,' '),3, ' ')||
+			lpad(nvl(to_char(NUMERO_DECIMALES), ' '), 2, ' ')||
+			lpad(nvl(to_char(MONTO_NETO), ' '), 10, ' ')||
+			lpad(nvl(to_char(MONTO_IMPUESTO), ' '), 10, ' ')||
+			lpad(nvl(to_char(MONTO_INTERES), ' '), 10, ' ')||
+			lpad(nvl(to_char(MONTO_TOTAL), ' '), 10, ' ')||
+			lpad(nvl(to_char(MONTO_COBRANZA), ' '), 10, ' ')||
+			rpad(nvl(CODIGO_PAIS,' '),2, ' ')||
+			rpad(nvl(NOMBRE_CLIENTE,' '),65, ' ')||
+			rpad(nvl(DIRECCION,' '),250, ' ')||
+			rpad(nvl(EMAIL,' '),100, ' ')||
+			lpad(nvl(to_char(MONTO_SALDO), ' '), 10, ' ')||
+			lpad(nvl(to_char(MONTO_DEUDA_TOTAL), ' '), 10, ' ')||
+			lpad(nvl(to_char(COMISION_LINEA), ' '), 10, ' ')||
+			lpad(nvl(to_char(IMPUESTO), ' '), 10, ' ')||
+			rpad(nvl(COD_EMPRESA_HOLDING, ' '), 30, ' ') as line
+			from 
+			consulta
+				where trunc(fecha_sistema) = TO_DATE('${fecha}','yyyymmdd') 
+			order by
+			line
+			 
+		</sql>
+
+	</extractor>
+
+	<loader driver="oracle.jdbc.driver.OracleDriver" url="jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM"
+		user="gestion_pf" password="gestionpf.2017">
+		<prepared-statements>
+
+			<in>
+			
+			insert into 
+			consulta(
+				DOC_ID,
+				ID_TRX_REC,
+				ID_TRX_EFT,
+				ID_TRX_EPS,
+				FECHA_TRX,
+				FECHA_SISTEMA,
+				FECHA_VCTO,
+				RECAUDADOR_ID,
+				EMPRESA_ID,
+				CANAL,
+				CONVENIO,
+				ID_SERVICIO,
+				ID_CLIENTE,
+				FOLIO,
+				TIPO_DOCUMENTO,
+				PRODUCTO,
+				NOMBRE_SERVICIO,
+				CUOTA,
+				TOTAL_CUOTA,
+				MONEDA,
+				NUMERO_DECIMALES,
+				MONTO_NETO,
+				MONTO_IMPUESTO,
+				MONTO_INTERES,
+				MONTO_TOTAL,
+				MONTO_COBRANZA,
+				CODIGO_PAIS,
+				NOMBRE_CLIENTE,
+				DIRECCION,
+				EMAIL,
+				MONTO_SALDO,
+				MONTO_DEUDA_TOTAL,
+				COMISION_LINEA,
+				IMPUESTO,
+				COD_EMPRESA_HOLDING			
+			)
+			values(
+				TRIM($DOC_ID),
+				TRIM($ID_TRX_REC),
+				TRIM($ID_TRX_EFT),
+				TRIM($ID_TRX_EPS),
+				to_date(TRIM($FECHA_TRX), 'yyyymmdd hh24:mi:ss'),
+				to_date(TRIM($FECHA_SISTEMA), 'yyyymmdd hh24:mi:ss'),
+				to_date(TRIM($FECHA_VCTO), 'yyyymmdd hh24:mi:ss'),
+				TRIM($RECAUDADOR_ID),
+				TRIM($EMPRESA_ID),
+				TRIM($CANAL),
+				TRIM($CONVENIO),
+				TRIM($ID_SERVICIO),
+				TRIM($ID_CLIENTE),
+				TRIM($FOLIO),
+				TRIM($TIPO_DOCUMENTO),
+				TRIM($PRODUCTO),
+				TRIM($NOMBRE_SERVICIO),
+				TRIM($CUOTA),
+				TRIM($TOTAL_CUOTA),
+				TRIM($MONEDA),
+				TRIM($NUMERO_DECIMALES),
+				TRIM($MONTO_NETO),
+				TRIM($MONTO_IMPUESTO),
+				TRIM($MONTO_INTERES),
+				TRIM($MONTO_TOTAL),
+				TRIM($MONTO_COBRANZA),
+				TRIM($CODIGO_PAIS),
+				TRIM($NOMBRE_CLIENTE),
+				TRIM($DIRECCION),
+				TRIM($EMAIL),				
+				TRIM($MONTO_SALDO),
+				TRIM($MONTO_DEUDA_TOTAL),
+				TRIM($COMISION_LINEA),
+				TRIM($IMPUESTO),
+				TRIM($COD_EMPRESA_HOLDING)
+			)
+												
+			</in>
+				
+			<diffs>			
+			</diffs>
+				
+			<out>delete from consulta where doc = to_number($PAG_ID)</out>
+			
+		</prepared-statements>
+
+	</loader>
+
+	<!-- configuracion del archivo que se cargara -->
+	<file delimiter="">
+		<columns>
+			<column id="DOC_ID" length="15" />
+			<column id="ID_TRX_REC" length="50" />
+			<column id="ID_TRX_EFT" length="50" />
+			<column id="ID_TRX_EPS" length="50" />
+			<column id="FECHA_TRX" length="14" />
+			<column id="FECHA_SISTEMA" length="14" />
+			<column id="FECHA_VCTO" length="14" />
+			<column id="RECAUDADOR_ID" length="30" />
+			<column id="EMPRESA_ID" length="30" />
+			<column id="CANAL" length="20" />
+			<column id="CONVENIO" length="20" />
+			<column id="ID_SERVICIO" length="25" />
+			<column id="ID_CLIENTE" length="20" />
+			<column id="FOLIO" length="60" />
+			<column id="TIPO_DOCUMENTO" length="50" />
+			<column id="PRODUCTO" length="60" />
+			<column id="NOMBRE_SERVICIO"  length="60" />
+			<column id="CUOTA" length="3" />
+			<column id="TOTAL_CUOTA" length="19" />
+			<column id="MONEDA" length="3" />
+			<column id="NUMERO_DECIMALES" length="2" />
+			<column id="MONTO_NETO" length="10" />
+			<column id="MONTO_IMPUESTO" length="10" />
+			<column id="MONTO_INTERES" length="10" />
+			<column id="MONTO_TOTAL" length="10" />
+			<column id="MONTO_COBRANZA" length="10" />
+			<column id="CODIGO_PAIS" length="2" />
+			<column id="NOMBRE_CLIENTE" length="65" />
+			<column id="DIRECCION" length="250" />
+			<column id="EMAIL" length="100" />
+			<column id="MONTO_SALDO" length="10" />
+			<column id="MONTO_DEUDA_TOTAL" length="10" />
+			<column id="COMISION_LINEA" length="10" />
+			<column id="IMPUESTO" length="10" />
+			<column id="COD_EMPRESA_HOLDING" length="30" />
+		</columns>
+		<keys>
+			<column id="DOC_ID" />							
+		</keys>
+	</file>
+
+	<control-file delimiter="" tolerance="0" directory="deudas"
+		namepattern="ENVIO_CONV741_20131226.TXT">
+
+		<!-- atributos opcionales: operation,type, persist -->
+		<!-- types: "STRING": Por defecto. "NUMBER": numero. date(formato): , ej: 
+			date(yyyyMMdd) -->
+		<columns>
+			<column id="DOC_ID" length="15" />
+			<column id="ID_TRX_REC" length="50" />
+			<column id="ID_TRX_EFT" length="50" />
+			<column id="ID_TRX_EPS" length="50" />
+			<column id="FECHA_TRX" length="14" />
+			<column id="FECHA_SISTEMA" length="14" />
+			<column id="FECHA_VCTO" length="14" />
+			<column id="RECAUDADOR_ID" length="30" />
+			<column id="EMPRESA_ID" length="30" />
+			<column id="CANAL" length="20" />
+			<column id="CONVENIO" length="20" />
+			<column id="ID_SERVICIO" length="25" />
+			<column id="ID_CLIENTE" length="20" />
+			<column id="FOLIO" length="60" />
+			<column id="TIPO_DOCUMENTO" length="50" />
+			<column id="PRODUCTO" length="60" />
+			<column id="NOMBRE_SERVICIO"  length="60" />
+			<column id="CUOTA" length="3" />
+			<column id="TOTAL_CUOTA" length="19" />
+			<column id="MONEDA" length="3" />
+			<column id="NUMERO_DECIMALES" length="2" />
+			<column id="MONTO_NETO" length="10" />
+			<column id="MONTO_IMPUESTO" length="10" />
+			<column id="MONTO_INTERES" length="10" />
+			<column id="MONTO_TOTAL" length="10" />
+			<column id="MONTO_COBRANZA" length="10" />
+			<column id="CODIGO_PAIS" length="2" />
+			<column id="NOMBRE_CLIENTE" length="65" />
+			<column id="DIRECCION" length="250" />
+			<column id="EMAIL" length="100" />
+			<column id="MONTO_SALDO" length="10" />
+			<column id="MONTO_DEUDA_TOTAL" length="10" />
+			<column id="COMISION_LINEA" length="10" />
+			<column id="IMPUESTO" length="10" />
+			<column id="COD_EMPRESA_HOLDING" length="30" />
+		</columns>
+		<keys>
+			<column id="DOC_ID" />							
+		</keys>
+	</control-file>
+
+	<!-- campos que se usan para marcar diferencias -->
+	<diff-fields>
+		<file>		
+		</file>
+		<control-file>			
+		</control-file>
+	</diff-fields>
+
+
+	<validations>
+		<!-- <validation type="header" column="CABECERA-FEARCHI" equals="20131227" 
+			/> -->
+		<!-- <validation type="footer" column="TOTALES-NUMREGI" equals="%NROWS%" />
+		<validation type="footer" column="TOTALES-MTOTOTC" equals="$DETALLE-MTOCUOT" /> -->
+	</validations>
+
+
+	<email active="false">
+		<from-address>info@eftgroup.net</from-address>
+		<smtp-host>mail.eftgroup.net</smtp-host>
+		<username></username>
+		<password></password>
+		<subject-prefix>Carga Deuda </subject-prefix>
+		<body-prefix>Estimado cliente, se ha ejecutado un proceso de carga con el siguiente resultado: </body-prefix>
+		<body-sufix>Nota: Se han omitido los acentos para mayor compatibilidad.</body-sufix>
+		<to-address>
+			<address>boris.berrios@eftgroup.net</address>		
+		</to-address>
+	</email>
+
+</configuration>

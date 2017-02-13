@@ -1,0 +1,119 @@
+<configuration>
+
+	<datasource>
+		<driver>oracle.jdbc.driver.OracleDriver</driver>
+		<url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+		<user>hub_trx_pf</user>
+		<password>hubtrxpf.2017</password>
+	</datasource>
+
+	<query>	
+		select 
+			lpad(to_char(PAG_ID),15) as PAG_ID,
+			lpad(nvl(to_char(DOC_ID),' '),15) as DOC_ID,
+			rpad(nvl(ID_TRX_REC,' '), 50, ' ') as ID_TRX_REC, 
+			rpad(nvl(ID_TRX_EFT,' '), 50, ' ') as ID_TRX_EFT, 
+			rpad(nvl(ID_TRX_EPS,' '), 50, ' ') as ID_TRX_EPS, 
+			rpad(to_char(FECHA_TRX, 'yyyymmdd hh24:mi:ss'),14,' ') as FECHA_TRX,
+			rpad(to_char(FECHA_SISTEMA, 'yyyymmdd hh24:mi:ss'),14,' ') as FECHA_SISTEMA,
+			rpad(nvl(to_char(FECHA_VCTO, 'yyyymmdd hh24:mi:ss'), ' '),14,' ') as FECHA_VCTO,
+			rpad(nvl(RECAUDADOR_ID,' '), 30, ' ') as RECAUDADOR_ID, 
+			rpad(nvl(EMPRESA_ID,' '), 30, ' ') as EMPRESA_ID, 
+			rpad(nvl(NUM_CONVENIO,' '), 20, ' ') as NUM_CONVENIO, 
+			rpad(nvl(ID_SERVICIO,' '), 20, ' ') as ID_SERVICIO, 
+			rpad(nvl(ID_CLIENTE,' '), 20, ' ') as ID_CLIENTE, 
+			rpad(nvl(NUMERO_COMPROBANTE,' '), 50, ' ') as NUMERO_COMPROBANTE, 
+			rpad(nvl(FOLIO,' '), 60, ' ') as FOLIO, 
+			rpad(nvl(TIPO_PAGO,' '), 50, ' ') as TIPO_PAGO, 
+			rpad(nvl(PRODUCTO,' '), 60, ' ') as PRODUCTO, 
+			rpad(nvl(NOMBRE_SERVICIO,' '), 60, ' ') as NOMBRE_SERVICIO, 
+			lpad(nvl(to_char(CUOTA), ' '),3) as CUOTA,
+			rpad(nvl(MONEDA,' '), 3, ' ') as MONEDA, 
+			lpad(nvl(to_char(MONTO_NETO),' '),10) as MONTO_NETO,
+			lpad(nvl(to_char(MONTO_COBRANZA), ' '),10) as MONTO_COBRANZA,
+			lpad(nvl(to_char(MONTO_INTERES), ' '),10) as MONTO_INTERES,
+			lpad(nvl(to_char(MONTO_PAGO),' '),10) as MONTO_PAGO,
+			lpad(nvl(to_char(NUMERO_DECIMALES),' '),2) as NUMERO_DECIMALES,
+			rpad(nvl(CANAL,' '), 20, ' ') as CANAL, 
+			rpad(nvl(MEDIO_PAGO,' '), 20, ' ') as MEDIO_PAGO, 
+			rpad(nvl(SUCURSAL,' '), 20, ' ') as SUCURSAL, 
+			lpad(nvl(to_char(ESTADO_PAGO),' '),1) as ESTADO_PAGO,
+			lpad(nvl(to_char(REINTENTOS),' '),1) as REINTENTOS,
+			lpad(nvl(to_char(ESTADO_NOTIFICACION),' '),1) as ESTADO_NOTIFICACION,
+			lpad(nvl(to_char(ESTADO_RENDICION),' '),1) as ESTADO_RENDICION,
+			lpad(nvl(to_char(ESTADO_NOTIFICACION_REVERSA),' '),1) as ESTADO_NOTIFICACION_REVERSA,
+			rpad(nvl(COD_AUTORIZACION,' '), 50, ' ') as COD_AUTORIZACION, 
+			lpad(nvl(to_char(ESTADO_CONCILIACION),' '),1) as ESTADO_CONCILIACION,
+			rpad(nvl(to_char(FECHA_CONTABLE, 'yyyymmdd hh24:mi:ss'), ' '),14,' ') as FECHA_CONTABLE,
+			lpad(nvl(to_char(ESTADO_RECHAZO), ' '), 1) as ESTADO_RECHAZO,
+			rpad(nvl(to_char(FECHA_INTENCION, 'yyyymmdd hh24:mi:ss'), ' '),14,' ') as FECHA_INTENCION,
+			rpad(nvl(to_char(FECHA_NOTIFICACION, 'yyyymmdd hh24:mi:ss'), ' '),14,' ') as FECHA_NOTIFICACION,
+			rpad(nvl(EMISOR,' '), 20, ' ') as EMISOR, 
+			lpad(nvl(to_char(TIPO_SERVICIO),' '),1) as TIPO_SERVICIO,
+			rpad(nvl(ID_TRX_REV,' '), 50, ' ') as ID_TRX_REV, 
+			rpad(nvl(ID_TRX_EFT_REV,' '), 50, ' ') as ID_TRX_EFT_REV, 
+			rpad(nvl(ID_TRX_EPS_REV,' '), 50, ' ') as ID_TRX_EPS_REV, 
+			rpad(nvl(to_char(REVERSE_TRX, 'yyyymmdd hh24:mi:ss'), ' '),14,' ') as REVERSE_TRX,
+			lpad(nvl(to_char(COMISION_LINEA),' '),10) as COMISION_LINEA,
+			lpad(nvl(to_char(IMPUESTO),' '),10) as IMPUESTO,
+			rpad(nvl(COD_EMPRESA_HOLDING,' '), 30, ' ') as COD_EMPRESA_HOLDING
+			from pago
+				where trunc(fecha_sistema) = TO_DATE('${fecha}','yyyymmdd') 
+			  order by PAG_ID
+	</query>
+
+	<dump separator="" path="../pago/control-files" filename="${filename}_${fecha}.txt">
+		<field size="15">PAG_ID</field>		
+		<field size="15">DOC_ID</field>
+		<field size="50">ID_TRX_REC</field>
+		<field size="50">ID_TRX_EFT</field>
+		<field size="50">ID_TRX_EPS</field>
+		<field size="14">FECHA_TRX</field>
+		<field size="14">FECHA_SISTEMA</field>
+		<field size="14">FECHA_VCTO</field>
+		<field size="30">RECAUDADOR_ID</field>
+		<field size="30">EMPRESA_ID</field>
+		<field size="20">NUM_CONVENIO</field>
+		<field size="20">ID_SERVICIO</field>
+		<field size="20">ID_CLIENTE</field>
+		<field size="50">NUMERO_COMPROBANTE</field>
+		<field size="60">FOLIO</field>
+		<field size="50">TIPO_PAGO</field>
+		<field size="60">PRODUCTO</field>
+		<field size="60">NOMBRE_SERVICIO</field>
+		<field size="3">CUOTA</field>
+		<field size="3">MONEDA</field>
+		<field size="10">MONTO_NETO</field>
+		<field size="10">MONTO_COBRANZA</field>
+		<field size="10">MONTO_INTERES</field>
+		<field size="10">MONTO_PAGO</field>
+		<field size="2">NUMERO_DECIMALES</field>
+		<field size="20">CANAL</field>
+		<field size="20">MEDIO_PAGO</field>
+		<field size="20">SUCURSAL</field>
+		<field size="1">ESTADO_PAGO</field>
+		<field size="1">REINTENTOS</field>
+		<field size="1">ESTADO_NOTIFICACION</field>
+		<field size="1">ESTADO_RENDICION</field>
+		<field size="1">ESTADO_NOTIFICACION_REVERSA</field>		
+		<field size="50">COD_AUTORIZACION</field>
+		<field size="1">ESTADO_CONCILIACION</field>
+		<field size="14">FECHA_CONTABLE</field>
+		<field size="1">ESTADO_RECHAZO</field>
+		<field size="14">FECHA_INTENCION</field>
+		<field size="14">FECHA_NOTIFICACION</field>
+		<field size="14">EMISOR</field>
+		<field size="1">TIPO_SERVICIO</field>
+		<field size="50">ID_TRX_REV</field>
+		<field size="50">ID_TRX_EFT_REV</field>
+		<field size="50">ID_TRX_EPS_REV</field>
+		<field size="14">REVERSE_TRX</field>
+		<field size="10">COMISION_LINEA</field>
+		<field size="10">IMPUESTO</field>
+		<field size="30">COD_EMPRESA_HOLDING</field>
+ 
+	</dump>
+
+</configuration>
+
+

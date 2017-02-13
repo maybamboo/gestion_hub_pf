@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<conf xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" lineIdSize="0" xsi:noNamespaceSchemaLocation='template.xsd' resultEncoding="UTF-8" ignoreLineType="yes" lineSeparator="," >
+	
+	<filename>
+		<field format="NORMAL" length="30" name="PREFIX" truncate="LEFT" type="TEXT"/>   
+		<field format="NORMAL" length="8" name="FECHA" type="DATE" validation="yyyyMMdd" />    
+		<field length="1" name="DOT" type="CONSTANT" validation="."/>
+		<field length="3" name="EXT" type="TEXT"/>
+	</filename>
+
+	<line role="header">
+		<field name="TIPO_REGISTRO" length="1" type="CONSTANT" validation="1"/>
+		<field name="EMPRESA_ID" length="26" format="NORMAL" type="CONSTANT" validation="9999999999-9999-999999DV99"/>
+		<field name="HOLDING" length="4" format="NORMAL" type="CONSTANT" validation="BIOS" />
+		<field name="FECHA_PROCESO" length="10" type="TEXT" format="NORMAL"/>
+		<field name="HORA_PROCESO" length="8" type="TEXT" format="NORMAL"/>
+	</line>
+	
+	<line role="default">
+		<field length="1" name="TIPO_REGISTRO" type="CONSTANT" validation="2"/>
+		<field name="EMPRESA_ID" length="32" type="TEXT" format="NORMAL" />
+                <field name="NOM_EMP" length="64" type="TEXT" format="NORMAL" />
+		<field name="RECAUDADOR_ID" display="RECAUDADOR_ID" format="NORMAL" length="32" type="TEXT" />    
+                <field name="NOM_REC" display="NOM_REC" format="NORMAL" length="64" type="TEXT" />   
+                <field name="ID_CONVENIO" display="ID_CONVENIO" format="NORMAL" length="32" type="TEXT" />
+		<field name="ID_TRX_REC" display="ID_TRX_REC" format="NORMAL" length="32" type="TEXT" />   
+		<field name="ID_COMPROBANTE" display="NUMERO_COMPROBANTE" format="NORMAL" length="32" type="TEXT" />
+		<field name="ID_CUENTA" display="ID_CLIENTE" format="NORMAL" length="32" type="TEXT" />   
+		<field name="FECHA_TRX" display="FECHA_TRX" format="NORMAL" length="25" type="TEXT" />   
+		<field name="FECHA_CONTABLE" display="FECHA_CONTABLE" format="NORMAL" length="10" type="TEXT" />                        
+		<field name="CANAL" display="CANAL" format="NORMAL" length="32" type="TEXT" />                        
+                <field name="MEDIO_PAGO" display="MEDIO_PAGO" format="NORMAL" length="32" type="TEXT" />                        
+                <field name="TIPO_PAGO" display="TIPO_PAGO" format="NORMAL" length="4" type="CONSTANT" validation="PAGO" />                        
+                <field name="MONEDA" display="MONEDA" format="NORMAL" length="3" type="CONSTANT" validation="USD" />                        
+                <field name="NUMERO_DECIMALES" display="NUMERO_DECIMALES" format="NORMAL" length="1" type="CONSTANT" validation="2" />               
+		<field name="MONTO_PAGO" display="MONTO_PAGO" format="NORMAL" length="32" type="TEXT" />    
+                <field name="COMISION_LINEA" display="COMISION_LINEA" format="NORMAL" length="32" type="TEXT" />
+                <field name="IMPUESTO" display="IMPUESTO" format="NORMAL" length="32" type="TEXT" />
+                <field name="MONTO_NETO" display="MONTO_NETO" format="NORMAL" length="32" type="TEXT" />
+                <field name="NOMBRE_ESTUDIANTE" display="NOMBRE_ESTUDIANTE" format="NORMAL" length="256" type="TEXT" />
+                <field name="ADICIONAL_1" display="ADICIONAL_1" format="NORMAL" length="256" type="TEXT" />
+                <field name="ADICIONAL_2" display="ADICIONAL_2" format="NORMAL" length="32" type="TEXT" />
+	</line>
+
+	<line role="footer">
+		<field length="1" name="TIPO_REGISTRO" type="CONSTANT" validation="3"/>
+		<field name="NUM_REG" length="9" type="TEXT" format="NORMAL" />
+	        <field name="MONEDA" length="3" type="CONSTANT" format="NORMAL" validation="USD" />
+		<field name="NUMERO_DECIMALES" format="NORMAL" length="1" type="CONSTANT" validation="2" />
+                <field name="MONTO_PAGO" format="NORMAL" length="32" type="TEXT" />
+                <field name="MONTO_COMISIONES" format="NORMAL" length="32" type="TEXT" />
+                <field name="MONTO_ITBMS" format="NORMAL" length="32" type="TEXT" />
+                <field name="MONTO_NETO" format="NORMAL" length="32" type="TEXT" />
+                        
+	</line>
+
+
+
+    
+</conf>

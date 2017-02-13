@@ -1,0 +1,67 @@
+<report-conf>
+
+	<type>EXCEL</type>
+
+	<target-jboss>
+		<param name="java.naming.factory.initial">org.jnp.interfaces.NamingContextFactory</param>
+		<param name="java.naming.provider.url">jnp://localhost:1099</param>
+		<param name="java.naming.factory.url.pkgs">org.jboss.naming:org.jnp.interfaces</param>
+	</target-jboss>
+
+	<mybatis-catalogo>
+		<path>/usr/local/mybatis/catalogo</path>
+		<id>bd_portaleft_panama</id>
+	</mybatis-catalogo>
+
+	<portal>
+		<id-empresa>18</id-empresa>
+		<!--<url>/module/ReportesOperativos/reportePGP0201_excel</url>-->
+		<url>/module/ReportesOperativos/reporteXXXXXX_excel</url>
+	</portal>
+
+	<session>
+		<param name="servidoresMybatis">/usr/local/mybatis/servidores.xml</param>
+		<param name="tipoPortal">Banking</param>
+		<param name="idCliente">7</param>
+		<param name="raz_soc_clt">bios</param>
+		<param name="CatalogoJNDI_CONVENIO">bd_convenios_pf</param>
+		<param name="CatalogoJNDI_GESTION">bd_gestion_pf</param>
+	</session>
+
+	<post-parameters>
+		<param name="accion">buscar</param>
+		<param name="isGestionEmpresas">false</param>
+		<param name="fec_ini">20161113</param>
+		<param name="fec_fin">20161119</param>
+		<param name="id_holding">TODOS</param>
+		<param name="id_emp">TODOS</param>
+		<param name="doc_rec">TODOS</param>
+		<param name="datePickerIni">13-11-2016</param>
+		<param name="datePickerFin">19-11-2016</param>
+
+	</post-parameters>
+
+	<target-file>
+		<path>./files</path>
+		<name>reporte-${name}.xls</name>
+	</target-file>
+<!--
+	<transmission type="FTP" active="true" delete="true">
+		<host>localhost</host>
+		<port>21</port>
+		<user>anonymous</user>
+		<password>anonymous</password>
+		<path>/</path>
+	</transmission>
+-->
+<!--
+	<transmission type="SFTP" active="false" delete="true">
+		<host>10.10.50.140</host>
+		<port>22</port>
+		<user>hub_pf</user>
+		<password>hub_pf</password>
+		<path>.</path>
+	</transmission>
+ -->
+ 
+</report-conf> 

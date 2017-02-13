@@ -1,0 +1,450 @@
+<configuration>
+	<connections>
+		<connection name="CON01">
+		        <driver>oracle.jdbc.driver.OracleDriver</driver>
+	        	<url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+		        <user>hub_trx_pf</user>
+			<password>hubtrxpf.2017</password>
+		</connection>
+	</connections>	
+	<threading poolsize="1">
+	</threading>
+	<plugins>
+		<jars>
+			<add name="base" path="plugins/reconciliation-hubrec-plugin.jar" />
+		</jars>
+		<datasources>
+			<datasource name="BaseDataSource" jar="base" class="eft.bankreconciliation.datasource.CustomJdbcDatasource" connection="CON01" />
+		</datasources>
+
+		<preparing-actions>
+			<!-- marca los registros que se estan procesando en la conciliacion actual con un estado temporal-->
+			<action name="update" jar="base" class="eft.bankreconciliation.actions.prepare.ExecuteQuery" datasource="BaseDataSource">
+				<data>
+					<query>update resumen_conciliacion  set estado='PROCESANDO_{IDCARGA}' where id_carga = {IDCARGA}  </query>
+				</data>	
+			</action> 
+		</preparing-actions>
+
+		<cleaning-actions>
+			<!--guarda registros nuevos por inconsistencia copiando la mayoria de datos del original y reemplazando solo los campos inconsistentes con registros de la tabla temporal-->
+			<action name="update1" jar="base" class="eft.bankreconciliation.actions.clean.ExecuteQuery" datasource="BaseDataSource">
+				<data>
+					<query>
+        INSERT INTO PAGO_CONCILIACION 
+        (
+		PAG_ID,  
+	        DOC_ID,  
+	        ID_TRX_REC,  
+	        ID_TRX_EFT,  
+	        ID_TRX_EPS,  
+	        FECHA_TRX,  
+	        FECHA_SISTEMA,  
+	        FECHA_VCTO,  
+	        RECAUDADOR_ID,  
+	        EMPRESA_ID,  
+	        NUM_CONVENIO,  
+	        ID_SERVICIO,  
+	        ID_CLIENTE,  
+	        NUMERO_COMPROBANTE,  
+	        FOLIO,  
+	        TIPO_PAGO,  
+	        PRODUCTO,  
+	        NOMBRE_SERVICIO,  
+	      --CUOTA,  
+	        MONEDA,  
+	        MONTO_PAGO,  
+	        NUMERO_DECIMALES,  
+	        CANAL,  
+	        MEDIO_PAGO,  
+	        SUCURSAL,  
+	        ESTADO_PAGO,  
+	        REINTENTOS,  
+	        ESTADO_NOTIFICACION,  
+	        ESTADO_RENDICION,  
+	        COD_AUTORIZACION,  
+	      --DATOS_ADICIONALES,  
+		ESTADO_CONCILIACION,  
+		FECHA_CONTABLE,  
+		ESTADO_RECHAZO,  
+		FECHA_INTENCION,  
+		FECHA_NOTIFICACION,  
+		EMISOR,  
+		ID_CARGA,
+		COD_EMPRESA_HOLDING
+	)
+	SELECT 
+		--DISTINCT 
+          	SEQ_PAGO.NEXTVAL,                         
+          	p.DOC_ID,                         
+          	p.ID_TRX_REC,                     
+          	p.ID_TRX_EFT,                     
+          	p.ID_TRX_EPS,                     
+          	p.FECHA_TRX,                      
+          	SYSDATE, --TO_CHAR(p.FECHA_SISTEMA, 'YYYY-MM-DD HH24:MI:SS'),                 
+          	p.FECHA_VCTO,                     
+          	p.RECAUDADOR_ID,                  
+          	p.EMPRESA_ID,                     
+          	p.NUM_CONVENIO,                   
+          	p.ID_SERVICIO,                    
+          	p.ID_CLIENTE,                     
+          	p.NUMERO_COMPROBANTE,             
+          	p.FOLIO,                          
+          	p.TIPO_PAGO,                      
+          	p.PRODUCTO,                       
+          	p.NOMBRE_SERVICIO,                
+              --p.CUOTA,                          
+          	p.MONEDA,                         
+          	t.MONTO_PAGO,  
+          	p.NUMERO_DECIMALES,               
+          	p.CANAL,                          
+          	p.MEDIO_PAGO,                     
+         	p.SUCURSAL,                       
+          	p.ESTADO_PAGO,                    
+          	p.REINTENTOS,                     
+          	p.ESTADO_NOTIFICACION,            
+	        p.ESTADO_RENDICION,               
+          	p.COD_AUTORIZACION,               
+	      --p.DATOS_ADICIONALES,              
+		6,            
+		p.FECHA_CONTABLE,                 
+		p.ESTADO_RECHAZO,                 
+		p.FECHA_INTENCION,                
+		p.FECHA_NOTIFICACION,             
+		p.EMISOR,
+		p.ID_CARGA,
+		p.COD_EMPRESA_HOLDING
+	FROM	
+		PAGO_CONCILIACION p, TEMP_CARGA_CONCILIACION t 
+
+        WHERE 	
+        	p.ID_CARGA = {IDCARGA} 
+            AND t.ID_CARGA = {IDCARGA}
+            AND p.ESTADO_CONCILIACION 		= 2
+            AND LTRIM(p.ID_TRX_REC, '0') 	= LTRIM(t.ID_TRX_REC, '0')
+					</query>	
+				</data>	
+			</action>                 		
+
+			<!--marca no informados-->         
+			<action name="update3" jar="base" class="eft.bankreconciliation.actions.clean.ExecuteQuery" datasource="BaseDataSource">
+				<data>
+					<query>update PAGO_CONCILIACION SET ESTADO_CONCILIACION = 5, ESTADO_PAGO = 4, ESTADO_NOTIFICACION_REVERSA=1 WHERE ESTADO_CONCILIACION = 4 and  id_carga= {IDCARGA}</query>
+				</data>	
+			</action>
+
+			<!--actualiza resumen carga con resultado de conciliacion-->
+			<action name="update2" jar="base" class="eft.bankreconciliation.actions.clean.ExecuteQuery" datasource="BaseDataSource">
+				<data>  
+					<query>
+              update  resumen_conciliacion  set 
+              cant_acept = (select count(*) from pago_conciliacion where ESTADO_CONCILIACION = 0 and id_carga = {IDCARGA}),
+              monto_acept = (select decode(sum (monto_pago), null, 0,sum (monto_pago)) from pago_conciliacion where ESTADO_CONCILIACION = 0 and id_carga = {IDCARGA}),
+              cant_no_inf = (select count(*) from pago_conciliacion where (ESTADO_CONCILIACION = 5 or ESTADO_CONCILIACION = 4) and id_carga =  {IDCARGA}),
+              monto_no_inf = (select decode(sum (monto_pago), null, 0,sum (monto_pago)) from pago_conciliacion where (ESTADO_CONCILIACION = 5 or ESTADO_CONCILIACION = 4) and id_carga = {IDCARGA}),              
+              cant_incons = (select count(*) from pago_conciliacion where ESTADO_CONCILIACION = 2 and id_carga = {IDCARGA}),
+              monto_incons = (select decode(sum (monto_pago), null, 0,sum (monto_pago)) from pago_conciliacion where ESTADO_CONCILIACION = 2 and id_carga = {IDCARGA}),
+              cant_nuevos = (select count(*) from pago_conciliacion where ESTADO_CONCILIACION = 1 and id_carga = {IDCARGA}),
+              monto_nuevos = (select decode(sum (monto_pago), null, 0,sum (monto_pago)) from pago_conciliacion where ESTADO_CONCILIACION = 1 and id_carga = {IDCARGA}),
+              cant_total = (select count(*) from pago_conciliacion where (ESTADO_CONCILIACION != 6 or ESTADO_CONCILIACION = 4) and id_carga = {IDCARGA} ),
+              monto_total = (select decode(sum (monto_pago), null, 0,sum (monto_pago)) from pago_conciliacion where (ESTADO_CONCILIACION != 6 or ESTADO_CONCILIACION = 4) and  id_carga = {IDCARGA}),
+              estado='PRECONCILIADO'
+              where id_carga = {IDCARGA}      
+					</query>
+				</data>	        
+			</action>	      
+
+			<!--elimina registros procesados de la tabla temporal de carga al terminar ejecucion         
+			<action name="update4" jar="base" class="eft.bankreconciliation.actions.clean.ExecuteQuery" datasource="BaseDataSource">
+				<data>
+					<query>delete TEMP_CARGA_CONCILIACION where id_carga = {IDCARGA}</query>
+				</data>	
+			</action>      
+-->
+		</cleaning-actions>
+		<rule-actions>	    						    
+			<action name="update" jar="base" class="eft.bankreconciliation.actions.JdbcUpdate" />
+		</rule-actions>
+		<cases>
+
+			<!-- este caso es para hacer match y detectar aceptados e inconsistentes-->
+			<case name="C01" jar="base" class="eft.bankreconciliation.cases.EnterpriseHubMatchMaybeInformed">
+				<datasources>
+					<BaseDataSource>BaseDataSource</BaseDataSource>
+					<ComparingDataSource>BaseDataSource</ComparingDataSource>
+				</datasources>
+
+
+				<actions>
+					<add name="update" datasource="BaseDataSource">
+						<data>
+							<table>PAGO_CONCILIACION</table>
+							<updateFields>
+								<field>
+									<name>ESTADO_CONCILIACION</name>
+									<value>0</value>
+									<!--Estado conciliado OK-->
+								</field>
+							</updateFields>
+							<conditions>
+								<condition operation="equals">
+									<left>MONTO_PAGO</left>
+									<right>{MONTO_PAGO}</right>
+								</condition>
+								<condition operation="equals">
+									<left>LTRIM(ID_TRX_REC,'0')</left>
+									<right>LTRIM('{ID_TRX_REC}', '0')</right>
+								</condition>
+								<!--
+								<condition operation="equals">
+					                            <left>LTRIM(FOLIO,'0')</left>
+		        			                    <right>LTRIM('{FOLIO}','0')</right>
+					                        </condition>
+					                        -->
+								<condition operation="equals">
+									<left>ESTADO_CONCILIACION</left>
+									<right>4</right>
+								</condition>
+							</conditions>
+							<limit>rownum=1</limit>
+							<originalValue>BASE</originalValue>
+							<newValue>BASE</newValue>
+							<nullReplacement>IS NULL</nullReplacement>
+						</data>
+					</add>
+					<add name="update" datasource="BaseDataSource">
+						<data>
+							<table>PAGO_CONCILIACION</table>
+							<updateFields>
+								<field>
+									<name>ESTADO_CONCILIACION</name>
+									<value>2</value>
+									<!--Estado Inconsistente-->
+								</field>
+							</updateFields>
+							<conditions>
+								<condition operation="equals">
+									<left>MONTO_PAGO!</left>
+									<right>{MONTO_PAGO}</right>
+								</condition>
+								<condition operation="equals">
+									<left>LTRIM(ID_TRX_REC,'0')</left>
+									<right>LTRIM('{ID_TRX_REC}', '0')</right>
+								</condition>
+								<!--
+								<condition operation="equals">
+					                            <left>LTRIM(FOLIO,'0')</left>
+		        			                    <right>LTRIM('{FOLIO}', '0')</right>
+					                        </condition>
+					                        -->
+								<condition operation="equals">
+									<left>ESTADO_CONCILIACION</left>
+									<right>4</right>
+								</condition>                                                            
+							</conditions>
+							<limit>rownum=1</limit>
+							<originalValue>BASE</originalValue>
+							<newValue>BASE</newValue>
+							<nullReplacement>IS NULL</nullReplacement>
+						</data>
+					</add>
+
+				</actions>
+
+				<data>
+					<baseQuery>
+					select t.PAG_ID
+					, t.DOC_ID
+					, LTRIM(t.ID_TRX_REC, '0') AS ID_TRX_REC
+					, t.ID_TRX_EFT
+					, t.ID_TRX_EPS
+					, to_char(t.FECHA_TRX,'YYYYMMDDHH24MISS') AS FECHA_TRX
+					, t.FECHA_SISTEMA
+					, t.RECAUDADOR_ID
+					, t.EMPRESA_ID
+					, t.NUM_CONVENIO
+					, t.ID_SERVICIO
+					, t.ID_CLIENTE
+					, t.NUMERO_COMPROBANTE
+					, t.MONEDA
+					, t.MONTO_PAGO
+					, t.NUMERO_DECIMALES
+					, t.CANAL
+					, t.MEDIO_PAGO
+					, t.ESTADO_PAGO
+					, t.ESTADO_NOTIFICACION
+					, t.EMISOR
+					, t.FOLIO
+					, t.ID_CARGA
+					, t.TIPO_PAGO
+					, to_char(t.FECHA_CONTABLE,'YYYYMMDD') AS FECHA_CONTABLE          
+					, t.DATOS_ADICIONALES || '' as DATOS_ADICIONALES 
+					, NULL as NULO
+					from TEMP_CARGA_CONCILIACION t, resumen_CONCILIACION r          
+					where 
+					t.ID_CARGA = r.ID_CARGA
+					and r.estado = 'PROCESANDO_'||r.ID_CARGA
+					</baseQuery>
+					<comparingQuery>select PAG_ID
+					, DOC_ID
+					, LTRIM(ID_TRX_REC, '0') AS ID_TRX_REC
+					, ID_TRX_EFT
+					, ID_TRX_EPS
+					, to_char(FECHA_TRX,'YYYYMMDDHH24MISS') AS FECHA_TRX
+					, FECHA_SISTEMA
+					, RECAUDADOR_ID
+					, EMPRESA_ID
+					, NUM_CONVENIO
+					, ID_SERVICIO
+					, ID_CLIENTE
+					, NUMERO_COMPROBANTE
+					, MONEDA
+					, MONTO_PAGO
+					, NUMERO_DECIMALES
+					, CANAL
+					, MEDIO_PAGO
+					, ESTADO_PAGO
+					, ESTADO_NOTIFICACION
+					, EMISOR
+					, FOLIO
+					, TIPO_PAGO
+					, to_char(FECHA_CONTABLE,'YYYYMMDD') AS FECHA_CONTABLE
+					, DATOS_ADICIONALES || '' as DATOS_ADICIONALES  
+					, SUCURSAL || '' as SUCURSAL					
+					from PAGO_CONCILIACION
+					where LTRIM(ID_TRX_REC,'0')= LTRIM('{ID_TRX_REC}', '0')
+					and ESTADO_CONCILIACION = 4
+                    and ID_CARGA = {ID_CARGA}
+					</comparingQuery>
+					<!--and ID_SERVICIO = '{ID_SERVICIO}'-->
+					<table>PAGO_CONCILIACION</table>	
+					<nullReplacement>NULL</nullReplacement>
+					<insertFields>         
+						<field mapping="no">
+							<name>PAG_ID</name>
+							<value>SEQ_PAGO.nextval</value>
+						</field>
+						<field mapping="no">
+							<name>DOC_ID</name>
+							<value>{DOC_ID}</value>
+						</field> 
+						<field mapping="no">
+							<name>ID_TRX_REC</name>
+							<value>'{ID_TRX_REC}'</value>
+						</field>
+						<field mapping="no">
+							<name>FECHA_TRX</name>
+							<value>to_date('{FECHA_TRX}','YYYYMMDDHH24MISS')</value>
+						</field>
+						<field mapping="no">
+							<name>ID_TRX_EFT</name>
+							<!-- <value>'{ID_TRX_EFT}'</value> -->
+							<value>SEQ_TRX_PAGO.NEXTVAL</value>
+						</field>
+						<field mapping="no">
+							<name>ID_TRX_EPS</name>
+							<value>'{ID_TRX_EPS}'</value>
+						</field>
+						<!--<field mapping="no">
+							<name>FECHA_SISTEMA</name> 
+							<value>SYSDATE</value>
+						</field>--> <!-- OJO: Esta fecha se ingresa por plugin-->	           					
+						<field mapping="no">
+							<name>RECAUDADOR_ID</name>
+							<value>'{RECAUDADOR_ID}'</value>
+						</field>
+						<field mapping="no">
+							<name>EMPRESA_ID</name>
+							<value>'{EMPRESA_ID}'</value> 
+						</field>
+						<field mapping="no">
+							<name>NUM_CONVENIO</name>
+							<value>'{NUM_CONVENIO}'</value>
+						</field>
+						<field mapping="no">
+							<name>ID_SERVICIO</name>
+							<value>'{ID_SERVICIO}'</value>
+						</field>
+						<field mapping="no">
+							<name>ID_CLIENTE</name>
+							<value>'{ID_CLIENTE}'</value>
+						</field>
+						<field mapping="no">
+							<name>NUMERO_COMPROBANTE</name>
+							<value>'{NUMERO_COMPROBANTE}'</value>
+						</field>
+						<field mapping="no">
+							<name>MONEDA</name>
+							<value>'{MONEDA}'</value>
+						</field>
+						<field mapping="no">
+							<name>MONTO_PAGO</name>
+							<value>{MONTO_PAGO}</value>
+						</field>
+						<field mapping="no">
+							<name>NUMERO_DECIMALES</name>
+							<value>{NUMERO_DECIMALES}</value>
+						</field>
+						<field mapping="no">
+							<name>CANAL</name>
+							<value>'{CANAL}'</value>
+						</field>
+						<field mapping="no">
+							<name>MEDIO_PAGO</name>
+							<value>'{MEDIO_PAGO}'</value>
+						</field>                                    
+						<field mapping="no">
+							<name>ESTADO_PAGO</name>
+							<value>0</value>
+						</field>
+						<field mapping="no">
+							<name>ESTADO_NOTIFICACION</name>
+							<value>'{ESTADO_NOTIFICACION}'</value>
+						</field>
+						<field mapping="no">
+							<name>EMISOR</name>
+							<value>'{EMISOR}'</value>
+						</field>
+						<field mapping="no">
+							<name>FOLIO</name>
+							<value>'{FOLIO}'</value>
+						</field> 						
+						<field>
+							<name>ID_CARGA</name>
+							<value>{ID_CARGA}</value> 
+						</field>  
+						<field mapping="no">
+							<name>FECHA_CONTABLE</name>
+							<value>to_date('{FECHA_CONTABLE}','YYYYMMDD')</value>
+						</field>
+						<field mapping="no">
+							<name>TIPO_PAGO</name>
+							<value>'{TIPO_PAGO}'</value>
+						</field>                                  
+						<field>
+							<name>ESTADO_CONCILIACION</name>
+							<value>1</value>
+							<!-- Estado Nuevo-->
+						</field>
+                                                <field>
+                                                        <name>ESTADO_RENDICION</name>
+                                                        <value>1</value>
+                                                        <!-- Estado Nuevo-->
+                                                </field>
+						<field>
+							<name>DATOS_ADICIONALES</name>
+							<value>'{DATOS_ADICIONALES}'</value>
+							<!-- Estado Nuevo-->
+						</field>
+						<!--field>
+							<name>SUCURSAL</name>
+							<value>'{SUCURSAL}'</value>
+						</field-->
+					</insertFields>
+
+				</data>
+			</case>		
+
+		</cases>
+	</plugins>
+</configuration>
