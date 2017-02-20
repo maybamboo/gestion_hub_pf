@@ -1,0 +1,9 @@
+<message>
+ <header>
+          <msg_type>actualiza_estado</msg_type>
+ </header>
+ <body>
+  <estado>${estado}</estado>
+  <filename>${filename}</filename>
+ </body>
+</message>

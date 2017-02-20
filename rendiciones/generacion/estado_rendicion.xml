@@ -1,0 +1,50 @@
+<configuration>
+
+	<datasources>
+		<datasource id="pagos">
+			<driver>oracle.jdbc.OracleDriver</driver>
+			<url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+			<user>hub_trx_pf</user>
+			<password>hubtrxpf.2017</password>
+		</datasource>
+
+		<datasource id="convenios">
+			<driver>oracle.jdbc.OracleDriver</driver>
+			<url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+			<user>bd_convenios_pf</user>
+			<password>bdconveniospf.2017</password>
+		</datasource>
+		<datasource id="gestion">
+			<driver>oracle.jdbc.OracleDriver</driver>
+			<url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+			<user>gestion_pf</user>
+			<password>gestionpf.2017</password>
+		</datasource>
+	</datasources>
+
+
+		
+	<base datasource="gestion">		 
+		SELECT PAG_ID, ESTADO_RENDICION, ID_CARGA FROM PAGO_CONCILIACION_HISTORICO  
+			WHERE TRUNC(FECHA_TRX)= to_date('${console.fecha_trx}' ,'DD/MM/YY')
+			AND ESTADO_RENDICION=0
+			AND ( ESTADO_CONCILIACION = 1 OR ESTADO_CONCILIACION =0 OR ESTADO_CONCILIACION = 6)
+		
+	</base>
+
+
+	<process>		
+		<query datasource="pagos">
+			UPDATE PAGO
+				SET ESTADO_RENDICION=${db.ESTADO_RENDICION}
+				WHERE PAG_ID=${db.PAG_ID}
+		</query>
+               <query datasource="gestion">
+                        UPDATE PAGO
+                                SET ESTADO_RENDICION=${db.ESTADO_RENDICION}
+                                WHERE PAG_ID=${db.PAG_ID}
+                </query>
+	</process>
+
+
+</configuration>

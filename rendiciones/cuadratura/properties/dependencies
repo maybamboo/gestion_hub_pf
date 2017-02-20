@@ -1,0 +1,12 @@
+libs-javaCommons.jar
+log4j-1.2.8.jar
+ojdbc14.jar
+libs-template_3.0.4.jar
+bank-reconciliation-lib.jar
+jxl.jar
+jdom.jar
+xercesImpl.jar
+xml-apis.jar
+libs-network.jar
+javamail.jar
+

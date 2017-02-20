@@ -1,0 +1,194 @@
+<configuration>
+
+	<datasources>
+
+                <datasource id="pagos">
+                        <driver>oracle.jdbc.OracleDriver</driver>
+                        <url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+                        <user>hub_trx_pf</user>
+                        <password>hubtrxpf.2017</password>
+                </datasource>
+
+                <datasource id="convenios">
+                        <driver>oracle.jdbc.OracleDriver</driver>
+                        <url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+                        <user>bd_convenios_pf</user>
+                        <password>bdconveniospf.2017</password>
+                </datasource>
+
+                <datasource id="gestion">
+                        <driver>oracle.jdbc.OracleDriver</driver>
+                        <url>jdbc:oracle:thin:@10.10.20.203:1541:EFTPANAM</url>
+                        <user>gestion_pf</user>
+                        <password>gestionpf.2017</password>
+                </datasource>
+
+	</datasources>
+
+	<constants>
+		<datamodel id="convenio">
+			<key>convenio</key>
+			<values>
+				<value>identificadorColegio</value>
+				<value>convenioEmpresa</value>
+			</values>
+			<select datasource="convenios">
+
+			<![CDATA[
+            select convenios.cod_cnv as convenio,
+            REGEXP_SUBSTR(REGEXP_SUBSTR (valores.dsc_val, '<etf:PrIdColegio>(\S*)</etf:PrIdColegio>'),'\d+') as identificadorColegio,
+            REGEXP_SUBSTR(REGEXP_SUBSTR (valores.dsc_val, '<etf:PrIdConvenio>(\S*)</etf:PrIdConvenio>'),'\d+') as convenioEmpresa
+            from convenios
+            join valores on
+               valores.id_cnv = convenios.id_cnv
+            join valor_atributo on
+               valor_atributo.id_val_atr = valores.id_val_atr
+            join atributos on
+               atributos.id_atr = valor_atributo.id_atr
+            where atributos.cod_atr = 'transformacionSolicitudConsulta'
+ 			]]>
+			</select>
+
+		</datamodel>
+
+		<datamodel id="convenio">
+			<key>convenio</key>
+			<values>
+				<value>url</value>
+				<value>contexto</value>
+				<value>puerto</value>
+				<value>active</value>
+			</values>
+			<select datasource="convenios">
+
+			<![CDATA[
+			select convenios.cod_cnv as convenio, c.url, c.contexto, c.puerto, decode(c.url, null, 'false', 'true') as active  from convenios
+                          left outer join (
+                                  select convenios.cod_cnv,
+                                   SYS.XMLTYPE.getStringVal(EXTRACT( SYS.XMLTYPE.CREATEXML(valores.dsc_val), '/properties/url/text()')) as url,
+                                   SYS.XMLTYPE.getStringVal( EXTRACT( SYS.XMLTYPE.CREATEXML(valores.dsc_val), '/properties/Contexto/text()')) as contexto,
+                                   SYS.XMLTYPE.getStringVal( EXTRACT( SYS.XMLTYPE.CREATEXML(valores.dsc_val), '/properties/puerto/text()')) as puerto
+                                    from convenios
+                                    left outer join valores on
+                                       valores.id_cnv = convenios.id_cnv
+                                   left outer join valor_atributo on
+                                       valor_atributo.id_val_atr = valores.id_val_atr
+                                   left outer join atributos on
+                                       atributos.id_atr = valor_atributo.id_atr
+                                    where atributos.cod_atr = 'conectorReversa'
+                          ) c on c.cod_cnv = convenios.cod_cnv
+
+ 			]]>
+			</select>
+
+		</datamodel>
+
+
+	</constants>
+
+
+	<webservices>
+		<ws id="eps">
+			<target>
+				<url>https://${convenio[db.NUM_CONVENIO].url}:${convenio[db.NUM_CONVENIO].puerto}/${convenio[db.NUM_CONVENIO].contexto}</url>
+				<timeout>5000</timeout>
+				<reintentos>1</reintentos>
+			</target>
+			<header>
+				<field name="Content-Type">text/xml; charset=UTF-8</field>
+			</header>
+			<payload>
+		<![CDATA[
+			<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"
+				xmlns:etf="http://localhost/etfws/">
+
+				<soap:Header>
+                                        <etf:Autenticacion>
+                                                <etf:PrIdRec>GPREY</etf:PrIdRec>
+                                                <etf:PrUser>eft</etf:PrUser>
+                                                <etf:PrClave>0123</etf:PrClave>
+                                                <etf:PrIdColegio>${convenio[db.NUM_CONVENIO].identificadorColegio}</etf:PrIdColegio>
+                                               	<etf:PrIdConvenio>${convenio[db.NUM_CONVENIO].convenioEmpresa}</etf:PrIdConvenio>
+                                               	<etf:PrTipo>PGRP</etf:PrTipo>
+                                               	<etf:PrRecTransac>${db.ID_TRX_REC}</etf:PrRecTransac>
+                                                <etf:PrRecFecha>${console.fecha_eft} ${console.tiempo_eft}</etf:PrRecFecha>
+                                        </etf:Autenticacion>
+                                </soap:Header>
+                                <soap:Body>
+                                        <etf:ProcesarPago>
+                                                <etf:PrCodigo>${db.ID_SERVICIO}</etf:PrCodigo>
+                                               	<etf:PrMontoPago>${db.MONTO_PAGO}</etf:PrMontoPago>
+                                                <etf:PrMontoConv>${db.COMISION_LINEA}</etf:PrMontoConv>
+                                                <etf:PrItbmConv>${db.IMPUESTO}</etf:PrItbmConv>
+                                                <etf:PrMontoNeto>${db.MONTO_NETO}</etf:PrMontoNeto>
+                                                <etf:PrSecuencia_eft>${db.ID_TRX_EFT}</etf:PrSecuencia_eft>
+                                               	<etf:PrFecha_eft>${console.fecha_eft} ${console.tiempo_eft}</etf:PrFecha_eft>
+                                       	</etf:ProcesarPago>
+                                </soap:Body>
+
+			</soap:Envelope>
+			]]>
+			</payload>
+			<transform>
+		<![CDATA[
+			<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+				xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:wsd="http://localhost/etfws/"
+				version="1.0" exclude-result-prefixes="soap wsd ">
+				<xsl:template match="/">
+				<response>
+					<code>
+						<xsl:value-of select="soap:Envelope/soap:Body/wsd:ReversarPagoResponse/wsd:ReversarPagoResult/reversa/PrCodigoResp" />
+					</code>
+				</response>
+				</xsl:template>
+			</xsl:stylesheet>	
+				]]>
+			</transform>
+			<fields>
+				<field name="code">/response/code</field>
+			</fields>
+
+			<query if="/response/code = '900'" datasource="pagos">
+				update pago set ESTADO_NOTIFICACION_REVERSA = 0
+				where pag_id = ${db.PAG_ID} 
+			</query>
+
+		</ws>
+	</webservices>
+
+	<base datasource="pagos">
+		select PAG_ID,
+				COD_EMPRESA_HOLDING, 
+				monto_pago/POWER(10,NUMERO_DECIMALES) as monto_pago,
+				nvl(monto_neto/POWER(10,NUMERO_DECIMALES),0) as monto_neto , 
+				pag_id,
+				id_trx_rec,
+				id_servicio,
+				recaudador_id, 
+				num_convenio, 
+				nvl(id_trx_eft,-1) as ID_TRX_EFT , 
+				nvl(comision_linea,
+		0) as COMISION_LINEA,
+		nvl(impuesto,0) as IMPUESTO
+		from pago
+		where estado_conciliacion=5 		
+			and (estado_notificacion_reversa is NULL or estado_notificacion_reversa = 1)
+			and num_convenio in ('${console.num_convenio}')
+			and TRUNC(fecha_trx) = to_date('${console.fecha_trx}' ,'DD/MM/YY')
+	</base>
+
+
+	<process>
+
+		<!-- <send ws="eps" active='${convenio[db.NUM_CONVENIO].url!"false"}'/>  -->
+		<send ws="eps" active='${convenio[db.NUM_CONVENIO].active}'/> 
+
+		<!-- 
+		<send ws="eps2" active="${db.cod_holding_emp?'BIOS2','true'}"/>
+		<send ws="eps2" active="${db.cod_holding_emp?'BIOS3','true'}"/>
+		-->
+
+	</process>
+
+
+</configuration>

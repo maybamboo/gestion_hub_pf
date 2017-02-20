@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflows>
+
+	<workflow id="default" xsl-path="../etc/xsls/conciliacion/default">
+
+		<if test="/request-context/request/message/header/msg_type = 'ingreso-rendicion'">
+			<goto workflow="validar-ingreso-rendicion"/>
+		</if>
+
+		<!--  ENTREGA LOS DATOS PARA DESCARGAR LOS DOCUMENTOS DE PAGO A COMPARAR PARA RENDIR -->
+		<elseif test="/request-context/request/message/header/msg_type = 'ftp_file'">
+                        <goto workflow="ftp_file"/>
+                </elseif>
+
+		<!-- GENERA EL DOCUMENTO DE LA RENDICION -->
+                <elseif test="/request-context/request/message/header/msg_type = 'gen_doc'">
+                        <goto workflow="gen_doc"/>
+                </elseif>
+
+
+                <elseif test="/request-context/request/message/header/msg_type = 'rendicion-cuadratura'">
+                        <goto workflow="rendicion-cuadratura"/>
+                </elseif>
+
+
+               <elseif test="/request-context/request/message/header/msg_type = 'actualiza_estado'">
+                        <goto workflow="actualiza_estado"/>
+                </elseif>
+
+	        <elseif test="/request-context/request/message/header/msg_type = 'resultado-conciliacion-detalle-page-rend'">
+			<goto workflow="resultado-conciliacion-detalle-page-rend"/>
+		</elseif>
+
+		<elseif test="/request-context/request/message/header/msg_type = 'resultado-conciliacion-resumen-rend'">						
+			<if test="count(/request-context/request/message/body/collectors/collector) = 0">					
+				<goto workflow="resultado-conciliacion-resumen-todos-rend"/>	
+			</if>
+			<else>
+				<goto workflow="resultado-conciliacion-resumen-rend"/>
+			</else>					
+		</elseif>
+		
+		
+		    
+		<elseif test="/request-context/request/message/header/msg_type = 'reporte_conciliacion_actualizar_estado'">
+			<goto workflow="resultado_conciliacion_actualizar_estado"/>
+		</elseif>
+                        
+		<elseif test="/request-context/request/message/header/msg_type = 'reporte_conciliacion_actualizar_estado_autoriza'">
+			<goto workflow="reporte_conciliacion_actualizar_estado_autoriza"/>
+		</elseif>                                             
+                                             
+		<elseif test="/request-context/request/message/header/msg_type = 'conciliacion-detalle-todo'">
+			<goto workflow="conciliacion-detalle-todo"/>
+		</elseif>
+                            
+                
+		<else>
+			<return id="error"/>
+		</else>
+
+	</workflow>
+
+	<workflow id="ftp_file" xsl-path="../etc/xsls/conciliacion/ftp_file">
+                <service id="list_file" name="TRANS" description="lista de los datos de los archivos a descargar"/>
+                <return id="return"/>
+        </workflow>  
+  
+
+        <workflow id="actualiza_estado" xsl-path="../etc/xsls/conciliacion/actualiza">
+		<service id="actualiza_estado" name="TRANS" description="actualiza el estado del proceso de rendicion"/> 
+		<return id="return"/>
+	</workflow>
+
+	
+        <workflow id="validar-ingreso-rendicion" xsl-path="../etc/xsls/conciliacion/ingreso-rendicion">
+
+		<!--Comprueba que no se este procesando otro archivo para ese recaudador-->
+		
+		<service id="segunda_carga" name="TRANS" description="verifica que no se este procesando otro archivo para ese convenio" />
+
+		<if test="request-context/services-responses/validar-ingreso-rendicion/segunda_carga/response/data/Results/Row/EXISTE = 1">
+                        <return id="error-existe-carga-pendiente"/>
+                </if>
+ 		
+
+		<!--Comprobamos que el archivo a cargar no haya sido procesado anteriormente -->
+                <service id="existe-checksum" name="TRANS" description="verifica si ya existe el archivo en bbdd con el checksum" />
+
+                <if test="request-context/services-responses/validar-ingreso-rendicion/existe-checksum/response/data/Results/Row/EXISTE = 1">
+                    <service id="ejecutar_shell_borrar" name="UTL01" description="Ejecuta shell que borra archivo" />
+                	<return id="error-existe-checksum"/>
+                </if>
+                                                                        
+                <!-- Comprobamos que la carga (mismo recaudador/fecha) no haya sido cargado anteriormente -->
+                <service id="existe-carga" name="TRANS" description="verifica si ya existe el archivo en bbdd con el checksum" />
+
+                <if test="request-context/services-responses/validar-ingreso-rendicion/existe-carga/response/data/Results/Row/EXISTE = 1">
+                	<return id="error-existe-carga"/>
+                </if>
+
+		<goto workflow="ingreso-rendicion" />
+
+
+	</workflow>
+
+	<workflow id="ingreso-rendicion" xsl-path="../etc/xsls/conciliacion/ingreso-rendicion">
+	
+		<service id="ingresa-carga" name="TRANS" description="registra datos asociados a la carga" />
+		<if test="/request-context/services-responses/ingreso-rendicion/ingresa-carga/response/code = 0">
+	     	      <goto workflow="carga-conciliacion" />
+		</if>
+		<else>
+			<return id="error"/>
+		</else>
+							
+	</workflow>
+  
+  
+	<workflow id="carga-conciliacion" xsl-path="../etc/xsls/conciliacion/carga-conciliacion">
+         	<if test="/request-context/request/request/urlPagina = '/module/hubRecaudacion/gestion_hub_pf/CargaRepetidaContinuar'">
+            		<service id="anula-cargas-anteriores" name="TRANS" description="Anula la carga anterior" />
+              	</if>
+                <if test="/request-context/services-responses/carga-conciliacion/anula-cargas-anteriores/response/code != 0">
+        	        <return id="error" />
+                </if>
+              	<service id="obtener-id-carga" name="TRANS" description="Obtiene identificador de la carga" />
+		<asyncservice id="rendicion-cuadratura" name="ORC0C" description="Ejecuta el proceso de rendicion y cuadratura" /> 
+               	<return id="return" />
+        </workflow>
+  
+	<workflow id="rendicion-cuadratura" xsl-path="../etc/xsls/conciliacion/carga-conciliacion">
+		<echo id="INICIANDO RENDICION-CUADRATURA" name="" agreement-id="" description="INICIANDO RENDICION-CUADRATURA"/>
+		<service id="ejecutar_shell" name="UTL01" description="Ejecuta shell que carga y conciliar" />
+
+		<if test="/request-context/request/message/body/auto = 1">
+			<service id="auto_aceptar" name="ORC0C" description="inicia proceso resumen conciliacion acepta de forma automatica" />
+                </if>
+	</workflow>
+	
+    
+      
+	<workflow id="actualiza-carga" xsl-path="../etc/xsls/conciliacion/actualiza-carga">		
+          <service id="actualiza-estado-carga" name="TRANS" description="actualiza el estado de la carga"/>  	
+    
+          <if test="/request-context/services-responses/actualiza-carga/actualiza-estado-carga/response/code = 0">			
+          	<return id="return"/>
+	  </if>
+	  <else>
+		<return id="error"/>
+	  </else>
+	</workflow>
+  
+  
+	<workflow id="actualiza-carga-error_ejecuta_shell" xsl-path="../etc/xsls/conciliacion/actualiza-carga-error_ejecuta_shell">		
+	    <service id="actualiza-estado-carga" name="TRANS" description="actualiza el estado de la carga"/>  	
+    
+	    <if test="/request-context/services-responses/actualiza-carga-error_ejecuta_shell/actualiza-estado-carga/response/code = 0">			
+      		<return id="return" />
+	     </if>
+	     <else>
+		<return id="error" />
+	     </else>
+	</workflow>  
+  
+
+		  
+	<!--  Resumen para todo los recaudadores -->
+	<workflow id="resultado-conciliacion-resumen-todos-rend" xsl-path="../etc/xsls/conciliacion/resultado-conciliacion-resumen-todos-rend">
+		
+		<service id="obtener-recaudadores" name="TRANS"/>
+		<service id="obtener-resumen-conciliacion" name="TRANS"/>		
+		
+		<if test="/request-context/services-responses/resultado-conciliacion-resumen-todos-rend/obtener-resumen-conciliacion/response/code = 0">
+			<return id="return"/>
+		</if>
+		<else>
+			<return id="error"/>
+		</else>
+		
+	</workflow>
+	
+	<!--  Resumen para un recaudador en particular -->
+	<workflow id="resultado-conciliacion-resumen-rend" xsl-path="../etc/xsls/conciliacion/resultado-conciliacion-resumen-rend">
+				
+		<service id="obtener-recaudador" name="TRANS"/>
+
+
+		<service id="obtener-resumen-conciliacion" name="TRANS"/>		
+		
+		<if test="/request-context/services-responses/resultado-conciliacion-resumen-rend/obtener-resumen-conciliacion/response/code = 0">
+			<return id="return"/>
+		</if>
+		<else>
+			<return id="error"/>
+		</else>
+		
+	</workflow>
+	
+
+	<!-- detalle de una carga, pero paginado -->
+	<workflow id="resultado-conciliacion-detalle-page-rend" xsl-path="../etc/xsls/conciliacion/resultado-conciliacion-detalle-page-rend">
+		
+		<service id="obtener-recaudadores" name="TRANS"/>
+		<service id="obtener-cantidad-detalle" name="TRANS"/>		
+		<service id="obtener-detalle" name="TRANS"/>
+		
+		<if test="/request-context/services-responses/resultado-conciliacion-detalle-page-rend/obtener-detalle/response/code = 0">
+			<return id="return"/>
+		</if>
+		<else>
+			<return id="error"/>
+		</else>
+		
+	</workflow>
+  
+  
+
+	<!-- ACEPTA -->
+	<workflow id="resultado_conciliacion_actualizar_estado" xsl-path="../etc/xsls/conciliacion/resultado_conciliacion_actualizar_estado">		
+		<service id="actualiza-estado_conciliacion" name="TRANS"/><!-- actualiza estado en resumen rendicion para conciliacion -->		
+
+		<!-- COMPLETA CAMPOS NULOS -->
+		<service id="datos_carga" name="TRANS"/>
+
+		<service id="obtener_holding" name="TRANS"/>
+		<service id="update_holding" name="TRANS"/>
+
+ 		<service id="obtener_decimales" name="TRANS"/>		
+		<service id="update_decimales" name="TRANS"/>
+
+		<service id="obtener_canal" name="TRANS"/>
+		<service id="update_caja" name="TRANS"/>
+
+		<service id="update_monto_neto_shell" name="UTL01" description="Actualiza los montos netos en nulos" />
+		<!-- COMPLETA CAMPOS NULOS END -->
+
+		<if test="/request-context/services-responses/resultado_conciliacion_actualizar_estado/actualiza-estado_conciliacion/response/code = 0">
+
+			<if test="/request-context/request/message/body/auto = 1">
+                        	<service id="auto_autoriza" name="ORC0C" description="inicia proceso resumen conciliacion autoriza de forma automatica" />
+                	</if>    
+
+			<return id="return"/>
+		</if>
+		<else>
+			<return id="error"/>
+		</else>		
+	</workflow>
+
+
+ 	<!-- AUTORIZA -->
+  	<workflow id="reporte_conciliacion_actualizar_estado_autoriza" xsl-path="../etc/xsls/conciliacion/resultado_conciliacion_actualizar_estado">
+
+    	<!--verifica si es posible autorizar o rechazar la nomina -->
+    	<service id="obtiene-estado_carga" name="TRANS"/>		      
+    	<if test="/request-context/services-responses/reporte_conciliacion_actualizar_estado_autoriza/obtiene-estado_carga/response/data/Results/Row/ESTADO != 'ACEPTADO'">
+       		<return id="return-error-estado"/>
+	</if>
+    
+ 	<if test="/request-context/request/message/body/estado = 'AUTORIZADO'"> <!--autorizado, ejecuta shell que notifica nuevos y actualiza estado conciliacion en pagos --> 
+		<service id="actualiza-estado_conciliacion_procesando_autorizado" name="TRANS" description="actualiza el estado"/>
+
+		<service id="merge" name="TRANS" description="Merge que actualiza la tabla pago" />
+
+		<service id="mv_historico" name="TRANS" description="Mueve conciliacion a historico" />
+
+		<!-- <service id="notificar-reversa" name="UTL01" description="notifica a la EPS"/> -->
+		<asyncservice id="notificar-reversa" name="UTL01" description="notifica a la EPS"/>
+
+		<!-- <service id="notificar-eps" name="UTL01" description="notifica a la EPS"/> -->
+		<asyncservice id="notificar-eps" name="UTL01" description="notifica a la EPS"/>
+
+		<!-- <asyncservice id="gen_doc" name="ORC0C" description="Ejecuta el proceso de rendicion y cuadratura" /> -->
+
+		<service id="actualiza-estado_conciliacion" name="TRANS" description="actualiza el estado"/>
+
+              	<if test="/request-context/services-responses/reporte_conciliacion_actualizar_estado_autoriza/actualiza-estado_conciliacion/response/code = 0">    
+          		<return id="return"/>
+          	</if>
+          	<else>
+          		<return id="error"/>
+          	</else>
+
+	</if>
+	<elseif test="/request-context/request/message/body/estado = 'NO_AUTORIZADO'">
+	      	<service id="actualiza-estado_conciliacion" name="TRANS"/><!-- actualiza estado en tabla resumen rendicion para conciliacion -->		
+              	<if test="/request-context/services-responses/reporte_conciliacion_actualizar_estado_autoriza/actualiza-estado_conciliacion/response/code = 0">    
+              		<return id="return"/>
+               	</if>
+        	<else>
+        		<return id="error"/>
+        	</else> 
+	</elseif>
+         <else><!--no autorizado solo actualiza estado -->
+    		<return id="error"/>      
+	</else>      
+		
+	</workflow>
+
+	<!-- 
+    	<workflow id="gen_doc" xsl-path="../etc/xsls/conciliacion/resultado_conciliacion_actualizar_estado">
+           <service id="data_move" name="UTL01" description="mueve datos a la tabla convenios_historicos"/>
+           <service id="bios_rendicion" name="UTL01" description=""/>
+           <return id="return"/>
+   	</workflow>
+      	-->
+  
+	<workflow id="conciliacion-detalle-todo" xsl-path="../etc/xsls/conciliacion/conciliacion-detalle-todo">
+
+
+		<service id="obtener-recaudadores" name="TRANS"/>
+
+
+		<service id="obtener-detalle" name="TRANS"/>		
+		<if test="/request-context/services-responses/conciliacion-detalle-todo/obtener-detalle/response/code = 0">
+			<return id="return"/>
+		</if>
+		<else>
+			<return id="error"/>
+		</else>							
+	</workflow>  
+	
+	<!-- Cancela la carga del archivo -->
+
+	<workflow id="carga-repetida-cancelar" xsl-path="../etc/xsls/conciliacion/carga-repetida-cancelar">
+    	<service id="ejecutar_shell_borrar" name="UTL01" description="Ejecuta shell que borra archivo" />
+    	<return id="return" />
+    </workflow>
+	
+                  
+</workflows>
